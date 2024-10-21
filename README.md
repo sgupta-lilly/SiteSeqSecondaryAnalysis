@@ -36,7 +36,7 @@ Rscript -e "library(rmarkdown);rmarkdown::render('SiteSeqGuideReport.rmd',  para
 
 <br />
 
-Finally annotated with 
+Finally annotated with gencode.v46.annotation.gtf from https://www.gencodegenes.org/human/release_21.html
 python3 annotation.py 17rev.OT_rank_out /lrlhps/genomics/prod/genome_projects/resources/sources/COSMIC/COSMIC/raw/20200827/GRCh38/cancer_gene_census.csv
 
 17rev.OT_rank_out is a table with all offtarget sites for 17rev ranked. annotation.py with gtf and cosmic census (licenced file)
