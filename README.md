@@ -12,12 +12,16 @@ secondary analysis v1
 Usage<br />
 **/lrlhps/users/c195933/mambaforge/bin/python3 secondary_analysis.py pathtosamplesheet pathtobam pathresults_offtarget**
 
-
 <br />
-/lrlhps/users/c195933/mambaforge/bin/python3 secondary_analysis.py /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/sorted_bam_bai/ /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/
 
-<br />
 4. path to results_offtarget where the named *OT_sum.tsv per sample. <br />
 5. The expected name of files = "sample" column from samplesheet (used to run nf-lly-siteseq) + "_cameron_macs2_combined_OT_sum.tsv". If the suffix is different then 
 change line 35
 
+
+<br />
+Specific example
+
+<br />
+python3 secondary_analysis.py /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/sorted_bam_bai/ /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/
+<br />
