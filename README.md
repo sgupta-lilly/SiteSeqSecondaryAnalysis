@@ -1,9 +1,9 @@
 # SiteSeqSecondaryAnalysis
-SiteSeqSecondaryAnalysis
-This repo is to be run after SiteSeq nf-lly-siteseq workflow
 
-Usage
-secondary analysis v1 
+## This repo is to be run after SiteSeq nf-lly-siteseq workflow
+
+# Usage
+## secondary analysis v1 
 1. create result_secondary_pipeline
 2. pathtosamplesheet = path to samplesheet
 3. pathtobam = path to bam files. These should be in user_data/sorted_bam_bai/<br />
