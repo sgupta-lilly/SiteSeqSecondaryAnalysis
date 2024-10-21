@@ -25,3 +25,11 @@ Specific example
 <br />
 python3 secondary_analysis.py /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/sorted_bam_bai/ /lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/
 <br />
+
+
+After the secondary_analysis.py run Rmarkdown
+guidename as in the samplesheet 
+results_folder = user_data
+samplesheet = samplesheet
+result_secondary_pipeline = folder create to run secondary_analysis.py
+Rscript -e "library(rmarkdown);rmarkdown::render('SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/result_secondary_pipeline/'), output_file = '17rev.html')"
