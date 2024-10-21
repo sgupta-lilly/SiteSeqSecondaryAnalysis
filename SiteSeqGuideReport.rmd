@@ -1,0 +1,562 @@
+---
+title: "APOC3 guide SITE-seq Report"
+author: 
+
+  - "TE Lead: Kevin Li"
+  - "Data Generated: Madelyn Ray, Elise Thomson"
+  - "NF- Pipeline: Le-Shin, Simone Gupta, Maya Sen, Yuanyuan Gao"
+  - "Report Generated: Simone Gupta"
+date: "2024"
+output: html_document
+params:
+  guidename: "default_name"
+  results_folder: "/path/to/user_folder"
+  samplesheet: "/path/to/sampleheet.cvs"
+  result_secondary_pipeline: "/path/to/secondary_results_folder"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r read_arg, include=FALSE}
+##Rscript -e "rmarkdown::render('SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/result_secondary_pipeline'), output_file = '17rev.html')"
+
+
+print(paste("guidename:", params$guidename))
+print(paste("results_folder:", params$results_folder))
+print(paste("samplesheet:", params$samplesheet))
+print(paste("result_secondary_pipeline:", params$result_secondary_pipeline))
+#args <- commandArgs(trailingOnly = TRUE)
+
+guidename <- params$guidename
+#results_folder <- "/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/"
+#the #the samplesheet to run the nf-lilly-siteseq user_data
+results_folder = params$results_folder
+
+#samplesheet <- "/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv"
+#the samplesheet to run the nf-lilly-siteseq
+samplesheet <-params$samplesheet
+#the secondary analysis to run the nf-lilly-siteseq
+#result_secondary_pipeline = "/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/"
+result_secondary_pipeline <-params$result_secondary_pipeline
+
+result_output = paste0(results_folder, "results_offtarget/")
+multiqc_path <- paste0(results_folder, "multiqc/multiqc_data")
+deeptool_file <- paste0(results_folder, "summarization/multibamsummary/readCounts.tab")
+# line 417 samplesheet$coln = "_REP1.mLb.clN.sorted.bam"
+
+
+```
+
+### Purpose
+**SITE-seq is an in-vitro detection technique for nuclease-induced double stranded breaks (DSBs) on protease-treated genomic DNA (Cameron et al., 2017). This is an off-target nomination assay for APOC3 **
+<br>
+<br>
+**Bioinformatic Analyses for SITE-seq pipeline (beta version)**
+**report for `r guidename`**
+<br>
+Zipped Fastqs were trimmed for Illumina adapters and base quality assessed with FastQC using Trim Galore (v0.6.7). Sequencing reads were aligned to human reference genome (GRCh38.p14?) using bowtie2 (v? ) and merged using picard mergebam (v2.27.4). Bam files underwent preseq (v3.1.2) and picard collect multiplemetrics (v2.27.4) to quality check alignment. Genome coverage was assessed with bedtools genomecov (v2.30.0), bedGraphToBigWig (v377), and mosdepth coverage (v0.3.6). 
+<br>
+Coverage peaks are called by MACS2 (v2.2.7.1)and custom in-house script is a modification of the Cameron et. al. 2017 (by Yuanyuan Gao).The modified script identifies Double strand breaks and off-target detection. In brief, peak calling is performed by detecting genomic regions with mapping profile showing increasing read depth and then decreasing coverage after reaching a peak. Within every called peak, double strand break (DSB) is identified by finding a position with >=5 reads starting or ending at this position. This type of read is defined as cliff read. At the same time, total reads overlap at the position counted. If the ratio of cliff read count vs total count >= 0.1, a DSB is called. Off targets (OT) are called by pulling out reference sequences 25bp before and after a DSB followed by pairwise alignment with the On Target. OT candidates are listed, if the mismatch on guide <=6 with a putative PAM (with <=2 mismatch) at 3 prime end of the candidate OT. 
+<br>
+Coverage for the OT sites is re-checked with paramaters of read quality (>30), length of reads calling the site and removal of optical duplicates, 
+<br>
+
+
+
+```{r setupfiles, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+
+
+samplesheet <- read.table(samplesheet, sep = ",", header = TRUE)
+print(samplesheet)
+guide_sequence <- subset(samplesheet, Target_Name == guidename)
+guide_sequence = guide_sequence$guide1[1]
+
+library(pander)
+
+library(ggcorrplot)
+
+library(reshape2)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(ggVennDiagram)
+library(ggvenn)
+library(kableExtra)
+library(plotly)
+library(stringr)
+library(DT)
+library(Biostrings)
+library(viridis)
+
+```
+
+
+
+```{r multiqc, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+
+
+multiqc_f <- paste0(multiqc_path, "/multiqc_picard_AlignmentSummaryMetrics.txt")
+x <- read.table(multiqc_f, header = T, sep = "\t")
+
+x <- subset(x, select = c(Sample, TOTAL_READS,PF_READS,PF_READS_ALIGNED,PCT_PF_READS_ALIGNED ))
+colnames(x)<- c("Sample", "Total Reads", "Total PF Reads", "Aligned Reads", "Fraction Aligned Reads")
+
+```
+
+
+
+### NGS Sequencing and QC Metrics
+**Summary**
+<br>
+
+Sequencing was performed on an Illumina instrument with 10% PhiX added to increase sequencing diversity. The total reads per sample, total number of clusters passing filter reads, alignment to the reference genome, and properly paired reads are defined in **Table 1**. All samples were found to have acceptable sequencing criteria to proceed with downstream off-target nomination. The multiqc report is attached for review. 
+[MultiQC ](https://lrlweb.am.lilly.com/pi/links/lrlhpsuser/c195933/lgm/multiqc_report.html)
+
+
+<center> **Table 1: QC Metrics  ** </center>
+<br>
+```{r multiQC, ,echo=FALSE, warning=FALSE,cache=FALSE }
+
+datatable(
+  x, extensions = c('Select', 'Buttons'), options = list(
+    select = list(style = 'os', items = 'row'),
+    dom = 'Blfrtip',
+    rowId = 0,
+    buttons = c('selectAll', 'selectNone', 'selectRows', 'selectColumns', 'selectCells', 'excel', 'csv', 'copy')
+  ),
+  selection = 'none'
+)
+
+
+```
+#### Explanation of Headers
+**Sample: Sample Name (Benchling Id)**
+<br>
+**Total Reads: Total number of reads **
+<br>
+**Total PF Reads: Total number of clusters passing filter reads**
+<br>
+**Aligned Reads: Number of reads aligned to reference genome**
+<br>
+**Fraction Aligned Reads: Fraction of reads aligned to the reference genome**
+<br>
+
+
+
+```{r sample_correlation, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+
+cov = read.table(deeptool_file, header = T, sep = "\t", comment.char = "", check.names = FALSE)
+sample_names <- samplesheet$sample
+column_names <- colnames(cov)
+
+# Step 3: Create a mapping between full column names in readcounts and sample names in samplesheet
+for (i in 4:length(column_names)) {
+  match_idx <- match(column_names[i], paste0(sample_names, samplesheet$coln))
+  if (!is.na(match_idx)) {
+    column_names[i] <- sample_names[match_idx]
+  }
+}
+colnames(cov) <- column_names
+
+dat <- cov[4:dim(cov)[2]]
+temp <- data.frame(colnames(dat))
+df_split <- separate(temp, col = colnames.dat., into = c("part1", "part2"), sep = "_")
+colnames(dat) <- df_split$part2
+
+corr <-  cor(dat, use = "complete.obs", method = "pearson")
+
+
+```
+
+<br>
+<br>
+
+### Read Coverage Per Sample
+
+<center> **Heatmap of the pearson correlation for aligned read coverage along human genome **</center>
+<center> The Pearson method is influenced by outliers.</center>
+
+```{r sample_correlationplot,echo=FALSE, warning=FALSE,cache=FALSE,fig.align='center',fig.width = 4, fig.height = 4 }
+
+ggcorrplot(corr, hc.order = TRUE, outline.col = "white")+scale_color_manual(values = viridis(3)) 
+```
+
+
+
+
+```{r ontarget, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+
+#chr12:111599364-111599765:-
+#chr12:111599564-111599587
+#result_output = paste0(results_folder, "ATXN2_FINAL_OUT/")
+#samplesheet <- read.table(samplesheet, sep = ",", header = TRUE)
+all_out = c()
+res = list.files(result_secondary_pipeline)
+res = res[grep("_merged_output.bed", res)]
+for(each in res){
+  filen = (paste0(result_secondary_pipeline, each))
+  x <- read.table(filen, header = TRUE, sep = "\t")
+
+  x$sample = strsplit(each, "_merged")[[1]][1]
+  all_out = rbind(all_out, x)
+}
+all_out <- merge(all_out, samplesheet, by = "sample")
+all_out <- subset(all_out, select = -c(fastq_1, fastq_2, guide2 ))
+
+all_dat_all <- all_out
+#unique(all_out$guide)
+#all_out <- all_out %>% arrange(desc(Off.On_ratio))
+all_out_guide <- subset(all_out, guide1 == guide_sequence)
+all_out_guide$ONTarget <- 0
+all_out_guide$ONTarget[which(all_out_guide$OT_Mismatch == 0 & all_out_guide$PAM_Mismatch == 0 & all_out_guide$RNA_bulge == 0 & all_out_guide$DNA_bulge == 0)] <- 1
+all_out_guide$Off.On_ratio <- 0.00
+guide_dat <- c()
+
+for(nm in unique(all_out_guide$samplename)){
+  temp <- subset(all_out_guide, samplename == nm)
+  oncov <- temp$Cov[which(temp$ONTarget == 1)]
+  temp$Off.On_ratio = temp$Cov/oncov
+  guide_dat <- rbind(guide_dat, temp )
+}
+
+
+
+
+
+
+
+all_out_guide <- subset(guide_dat, Off.On_ratio >0)
+all_out_guide <- subset(all_out_guide, OT_Mismatch <= 6 & RNA_bulge == 0 & DNA_bulge == 0)
+#### dat filtered all guide information 
+dat <- c()
+for(i in unique(all_out_guide$samplename)){
+temp <- subset(all_out_guide, samplename == i)
+by_dose <- temp %>% arrange(desc(Off.On_ratio)) %>% 
+    mutate(rank = rank(-Off.On_ratio))
+    by_dose <- data.frame(by_dose)
+    dat <- rbind(dat, by_dose) 
+}
+
+#### datF filtered all guide with Rank
+datF <- subset(dat, select = c(samplename, dose, OT_ID, Chr, OT_Start,OT_End, Strand,  Off.On_ratio,ONTarget, rank))
+datF$rank <- round(datF$rank)
+site_n <- data.frame(datF %>% group_by(samplename) %>% tally())
+
+datF <- merge(datF, site_n, by = "samplename")
+
+datFT <- subset(datF, ONTarget == 1)
+datFT <- subset(datFT, select = c(dose, samplename, Chr,OT_Start,OT_End,Strand, Off.On_ratio, rank, n))
+colnames(datFT)[1] <- "Dose"
+colnames(datFT)[8] <- "rank"
+colnames(datFT)[9] <- "Total sites nominated"
+
+results <- datFT %>%
+  group_by(Dose) %>%
+  arrange(desc(Dose)) %>%
+  mutate(Chr = replace(Chr, duplicated(Chr), '')) %>%
+  mutate(OT_Start = replace(OT_Start, duplicated(OT_Start), '')) %>%
+  mutate(OT_End = replace(OT_End, duplicated(OT_End), '')) %>%
+  mutate(Strand = replace(Strand, duplicated(Strand), '')) %>%
+  ungroup %>%
+  mutate(Dose = replace(Dose, duplicated(Dose), ''))
+
+results <- data.frame(results)
+#results <- subset(results, select = -c( Off.On_ratio))
+colnames(results)[1] <- "RNP concentration"
+colnames(results)[2] <- "Sample"
+colnames(results)[7] <- "Relative Read Depth"
+colnames(results)[8] <- "Rank"
+
+colnames(results)[9] <- "Total sites nominated"
+
+write.table(results, paste0(guidename, ".OnTargetRank"), sep = "\t", quote = F, row.names = F)
+
+```
+
+
+
+### On-target Cleavage and Rank
+<br>
+**The on-target cleavage and rank serves as a control on the quality of the assay. If no on-target cleavage is observed, it could be due to the CRISPR-enzyme activity. **
+
+<center> **Table 2: On-target Ranking  ** </center>
+<br>
+
+```{r Table}
+
+#datatable(results)
+
+ datatable(
+  results, extensions = c('Select', 'Buttons'), options = list(
+    select = list(style = 'os', items = 'row'),
+    dom = 'Blfrtip',
+    rowId = 0,
+    buttons = c('selectAll', 'selectNone', 'selectRows', 'selectColumns', 'selectCells')
+  ),
+  selection = 'none'
+)
+```
+
+
+#### Explanation of Headers
+**RNP concentration: Complexed sgRNA:Cas Concentration (nM)**
+<br>
+**Chr: The chromosome on which the putative cut site resides**
+<br>
+**OT_Start: The predicted start of the putative cleavage site**
+<br>
+**OT_End: The predicted end of the putative cleavage site**
+<br>
+**Strand: The strand of the cleavage sit**
+<br>
+**Relative Read Depth: read depth of candidate OT / read depth of on-target (ADD Depth at on-target site)**
+<br>
+**Rank: Rank of on-target cut site based on the relative read depth across all sites in each sample.**
+<br>
+**Total sites nominated: The total number of cleavage sites nominated **
+<br>
+<br>
+
+
+```{r dataPrepFigure,include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+datFig <- subset(datF, ONTarget != 1)
+```
+
+
+### Off-Target Sites
+<br>
+**Putative off-target site may have up to 6 max mismatches to the on-target sequence, 0 mismatch to PAM, no gap on DNA and RNA. It is not present in negative control (DNA only control and/or Cas9 only control).  **
+<br>
+<br>
+<center> **Off-target overlap in replicates at each RNP concentration ** </center>
+<br>
+```{r Figure,echo=FALSE, warning=FALSE,cache=FALSE, fig.align='center', fig.width=4, fig.height=4}
+
+
+for(i in unique(datFig$dose)){
+  dattemp <- subset(datFig, dose == i)
+  dattemp <- subset(dattemp, select = c(OT_ID, samplename))
+sets <- dattemp %>%
+  unique() %>%
+  mutate(value = TRUE) %>%
+  pivot_wider(id_cols = OT_ID,
+              names_from = samplename,
+              values_from = value,
+              values_fill = FALSE)
+#print(ggvenn(sets, names(sets)[2:4], fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF"),stroke_size = 0.5, set_name_size = 4, show_percentage = TRUE, text_size = 4)  + ggtitle(i))
+
+ print(ggvenn(sets, names(sets)[2:dim(sets)[2]], fill_color = viridis(4),stroke_size = 0.5, set_name_size = 4, show_percentage = FALSE, text_size = 4)  + ggtitle(i) + theme(plot.title = element_text(hjust = 0.5)) )
+ 
+}
+
+
+
+
+```
+
+
+```{r OffOn, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+datOT <- subset(datF, select = c(dose, OT_ID), ONTarget != 1 )
+datOT <- unique(datOT)
+siteN <- data.frame(datOT   %>% group_by(dose) %>% tally())
+#siteN$dose <- (as.numeric(gsub("nM", "", siteN$dose)))
+#siteN$dose <- as.numeric(siteN$dose %>% stringr::str_remove(pattern = "nm"))
+siteN$condition <-siteN$dose
+siteN$dose <- (siteN$dose)
+
+siteN$condition <- factor(siteN$condition, levels=c("64nM", "256nM", "1024nM"))
+
+  
+```
+<br>
+<br>
+<center> **The number of putative off-target sites (n) per RNP concentration (condition)**</center>
+<br>
+
+```{r OffOnplot, echo=FALSE, warning=FALSE,cache=FALSE, fig.width=4, fig.height=4, fig.align='center'}
+ggplot(siteN, aes(x = dose, y = n)) +geom_point()+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+labs(x = "RNP concentration (nM)", y = "No. of unique off-target sites")+ scale_color_viridis(3) + theme_bw()+ theme(panel.grid = element_blank())
+```
+
+
+```{r overlap, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+datOT <- subset(datF, ONTarget != 1)
+datOT <- subset(datOT, select = c(dose, OT_ID))
+datOT <- unique(datOT)
+No_of_sites <- length(unique(datOT$OT_ID))
+datOT$condition <- paste0("D", datOT$dose)
+sets <- datOT %>%
+  unique() %>%
+  mutate(value = TRUE) %>%
+  pivot_wider(id_cols = OT_ID,
+              names_from = condition,
+              values_from = value,
+              values_fill = FALSE)
+
+dat_plot <- list()
+cnt =0
+for(i in unique(datOT$condition)){
+  cnt = cnt+1
+  a<- subset(datOT, condition == i)
+  dat_plot[[i]] <- a$OT_ID
+  names(dat_plot[i]) <- i
+}
+
+```
+
+<br>
+<br>
+<center> **Total number (`r No_of_sites`) of off-target sites across all conditions.**  </center>
+<br>
+
+```{r overlapPlot,echo=FALSE, warning=FALSE,cache=FALSE, fig.align='center', fig.width=4, fig.height=4}
+
+ggVennDiagram(dat_plot,label = "count",label_alpha = 0) + scale_fill_distiller(palette = "Oranges", direction = 1)
+
+```
+<br>
+```{r rankallsites,include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
+
+
+#a <- list.files("/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/", pattern = "all_site_part_")
+a <- list.files(result_secondary_pipeline, pattern= "all_site_part_")
+a <- a[grep("_read_counts.tab", a)]
+datcnt <- c()
+for(i in a){
+ datcnt <- rbind(datcnt, read.table(paste0(result_secondary_pipeline, i), header = TRUE, sep = "\t", comment.char = "", check.names = F))
+}
+coords <- datcnt[1:3]
+colnames(coords) <- c("chr", "start", "end")
+column_names <- colnames(datcnt)
+samplesheet$coln = "_REP1.mLb.clN.sorted.bam"
+for (i in 4:length(column_names)) {
+  match_idx <- match(column_names[i], paste0(samplesheet$sample, samplesheet$coln))
+  if (!is.na(match_idx)) {
+    column_names[i] <- paste0(samplesheet$treatmenttype, "_",samplesheet$samplename)[match_idx]
+  }
+}
+colnames(datcnt) <- column_names
+
+binary_col <- function(datf1, datf2, col_name, threshold = 3) {
+  # Ensure the column name is valid
+  if (!(col_name %in% colnames(datf1)) || !(col_name %in% colnames(datf2))) {
+    stop("The specified column name is not present in one or both dataframes.")
+  }
+  
+  # Create a binary vector based on the threshold
+  datf1[[col_name]] <- as.integer(datf2[[col_name]] > threshold)
+  
+  # Return the modified dataframe
+  return(datf1)
+}
+
+
+datcnt <- datcnt[,grep("control_", colnames(datcnt))]
+datcnt <- cbind(coords, datcnt)
+datcnt01 <- datcnt
+
+
+for(eachcnt in colnames(datcnt)[4:dim(datcnt)[2]]){
+  datcnt01 <- binary_col(datcnt01,datcnt, eachcnt)
+  
+}
+ datcnt01$cont_cnt <- rowSums(datcnt01[4:dim(datcnt01)[2]])
+
+datOT <- subset(datF, select = c(dose, OT_ID, Off.On_ratio), ONTarget != 1)
+temp <- data.frame(datOT %>% group_by(OT_ID) %>% tally())
+
+temp2 <- datOT %>% group_by(OT_ID) %>% arrange(desc(dose))%>% summarize(RNPconcs = paste(dose, collapse = ','))
+
+#datOT <- merge(datOT, temp, by = "OT_ID")
+temp1 <- datOT %>% group_by(OT_ID) %>% summarise(RRD.Max = max(Off.On_ratio))
+dat <- merge(temp, temp1, by = "OT_ID")
+dat$TotalSamples <- dim(subset(samplesheet, treatmenttype == "trt"))[1]
+dat <- merge(dat, temp2, by = "OT_ID")
+
+
+df_separated <- dat %>%
+  separate(OT_ID, into = c("ID", "chr", "start", "end", "Strand"), sep = "_", remove = FALSE)
+
+
+
+#dat <- c()
+#by_OT_ID <- datOT %>% arrange(desc(Off.On_ratio)) %>% 
+#    mutate(rank = rank(-Off.On_ratio))
+ #   by_dose <- data.frame(by_OT_ID)
+ #   dat <- rbind(dat, by_OT_ID) 
+
+
+
+cnt <- subset(datcnt01, select = c(chr, start, end,cont_cnt ))
+dat <- merge(df_separated,cnt, by = c("chr","start", "end" ) )
+dat <- subset(dat, select = -c(chr, start, start, end,ID, Strand ))
+#dat <- merge(dat, cnt, by = "OT_ID", all.x = TRUE)
+
+#dat$n.y[which(is.na(dat$n.y))] <- -1
+colnames(dat)[2] <- "No.OTsites"
+colnames(dat)[6] <- "No.OTsitesInControls"
+
+dat$No.OTsitesInControls[which(dat$No.OTsitesInControls == 0)] <- -1
+
+dat$rd_n <- -1*(dat$RRD.Max * (dat$No.OTsites/dat$TotalSamples))/dat$No.OTsitesInControls
+
+dat <- dat %>% arrange(desc(rd_n)) %>% 
+   mutate(rank = rank(-rd_n))
+dat$rank <- round(dat$rank)
+dat <- dat %>% arrange((rank))
+dat <- subset(dat, select = c(OT_ID, rank, rd_n,RRD.Max, No.OTsites, RNPconcs,  TotalSamples, No.OTsitesInControls ))
+
+
+colnames(dat) <- c("OT_ID", "Rank", "Score", "Max Relative Depth", "Sample Occurrence", "OT observed at RNP concentrations", "Total Samples", "Control Occurrence")
+dat$Score <- round(dat$Score, 3)
+
+temp <- dat %>% separate(OT_ID, c("build", "chrom", "start", "end", "strand"), "_")
+
+dat$OT_ID <- paste0("hg38_", temp$chrom, ":", temp$start, "-", temp$end)
+dat$Strand <- temp$strand
+dat$guidename <- guidename
+table_out <- temp
+
+table_out$guidename <- guidename
+table_out$build <- "hg38"
+colnames(table_out)[2] <- "Chr"
+colnames(table_out)[3] <- "OT_Start"
+colnames(table_out)[4] <- "OT_End"
+
+write.table(table_out, paste0(guidename, ".OT_rank_out"), sep = "\t", quote = F, row.names = F)
+
+```
+
+<center> **Table 3: Off Target Site Ranking ** </center>
+<br>
+```{r rankallTable, echo=FALSE, warning=FALSE,cache=FALSE}
+datatable(
+  dat, extensions = c('Select', 'Buttons'), options = list(
+    select = list(style = 'os', items = 'row'),
+    dom = 'Blfrtip',
+    rowId = 0,
+    autoWidth = FALSE,
+    buttons = c('selectAll', 'selectNone', 'selectRows', 'selectColumns', 'selectCells', 'excel', 'csv', 'copy')
+  ),
+  selection = 'none'
+)
+
+
+```
+#### Explanation of Headers
+**OT_ID: Identifier for putative off-target site **
+<br>
+**Rank: Putative off-target rank based on a score. This score is the product of Relative Read Depth and frequency of OT site in this experiment divided by the occurrence of the OT site in controls**
+<br>
+**Score = -1*(Max(Relative Depth) * (occurrence of OT sites/total RNP treated samples))/occurence of OT sites in controls**
+<br>
+**Max Relative Depth: Maximum candidate OT read depth divided by on-target read depth across the samples**
+<br>
+**Sample Occurrence: Occurrence of off-target site within this experiment**
+<br>
+**OT observed at RNP concentrations: all samples treated at RNP concentration where is the OT site is observed **
+<br>
+**Total Samples: Number of samples within this experiment**
+<br>
+**Control Occurrence Occurrence: Occurrence of off-target site within this experiment**
