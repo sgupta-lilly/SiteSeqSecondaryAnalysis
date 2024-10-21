@@ -40,6 +40,6 @@ Finally annotated with gencode.v46.annotation.gtf from https://www.gencodegenes.
 <br />
 python3 annotation.py 17rev.OT_rank_out cancer_gene_census.csv
 
-17rev.OT_rank_out is a table with all offtarget sites for 17rev ranked. annotation.py with gtf and cosmic census (licenced file)
+17rev.OT_rank_out is a table with all offtarget sites for 17rev from the rmarkdown. Annotation.py annotates the sites with gencode.v46.annotation.gtf that should be in the directory and cosmic census (licenced file) attached to this repo
 
 
