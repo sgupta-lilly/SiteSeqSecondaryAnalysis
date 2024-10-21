@@ -8,6 +8,7 @@ secondary analysis v1
 2. pathtosamplesheet = path to samplesheet
 3. pathtobam = path to bam files. These should be in user_data/sorted_bam_bai/<br />
 3a. check name of bam files _REP1.mLb.clN.sorted.bam; if different change line 83 and 122<br />
+Usage<br />
 **/lrlhps/users/c195933/mambaforge/bin/python3 secondary_analysis.py pathtosamplesheet pathtobam pathresults_offtarget**
 
 
