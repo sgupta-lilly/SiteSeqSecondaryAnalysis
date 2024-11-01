@@ -27,7 +27,9 @@ change line 35
 <br />
 <br />
 <br />
-After the secondary_analysis.py run Rmarkdown
+After the secondary_analysis.py 
+
+run Rmarkdown
 guidename as in the samplesheet 
 results_folder = user_data
 samplesheet = samplesheet
