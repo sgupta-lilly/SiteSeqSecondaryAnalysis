@@ -1,4 +1,4 @@
-# SiteSeqSecondaryAnalysis
+# ODNSecondaryAnalysis
 
 ## This repo is to be run after SiteSeq nf-lly-siteseq workflow
 
