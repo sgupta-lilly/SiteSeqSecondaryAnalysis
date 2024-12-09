@@ -466,7 +466,7 @@ dat <- dat %>% arrange((rank))
 dat <- subset(dat, select = c(OT_ID, rank, rd_n,RRD.Max, No.OTsites, treatmentSamples,  TotalSamples, No.OTsitesInControls ))
 
 
-colnames(dat) <- c("OT_ID", "Rank", "Score", "Max Relative Depth", "Sample Occurrence", "OT observed at RNP concentrations", "Total Samples", "Control Occurrence")
+colnames(dat) <- c("OT_ID", "Rank", "Score", "Max Relative Depth", "Sample Occurrence", "OT observed in samples", "Total Samples", "Control Occurrence")
 dat$Score <- round(dat$Score, 3)
 
 temp <- dat %>% tidyr::separate(OT_ID, c("build", "chrom", "start", "end", "strand"), "_")
@@ -513,7 +513,7 @@ datatable(
 <br>
 **Sample Occurrence: Occurrence of off-target site within this experiment**
 <br>
-**OT observed at RNP concentrations: all samples treated at RNP concentration where is the OT site is observed **
+**OT observed in samples: all samples treated at RNP concentration where is the OT site is observed **
 <br>
 **Total Samples: Number of samples within this experiment**
 <br>
