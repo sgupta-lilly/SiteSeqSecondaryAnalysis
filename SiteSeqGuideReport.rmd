@@ -1,5 +1,5 @@
 ---
-title: "APOC3 guide SITE-seq Report"
+title: "APOC3 guide ODN-seq Report"
 author: 
 
   - "TE Lead: Kevin Li"
@@ -20,8 +20,15 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r read_arg, include=FALSE}
-##Rscript -e "rmarkdown::render('SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/results_DSB_Cameron_Macs2_combined_08-25-2024/result_secondary_pipeline'), output_file = '17rev.html')"
-
+##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '17rev.html')"
+#17rev
+#29rev
+#41rev
+#52rev
+#53rev
+#67forw
+#68forw
+#6rev
 
 print(paste("guidename:", params$guidename))
 print(paste("results_folder:", params$results_folder))
