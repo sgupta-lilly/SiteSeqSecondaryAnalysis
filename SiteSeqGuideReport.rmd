@@ -42,8 +42,8 @@ samplesheet <-params$samplesheet
 result_secondary_pipeline <-params$result_secondary_pipeline
 
 result_output = paste0(results_folder, "results_offtarget/")
-multiqc_path <- paste0(results_folder, "multiqc/multiqc_data")
-deeptool_file <- paste0(results_folder, "summarization/multibamsummary/readCounts.tab")
+multiqc_path <- paste0(results_folder, "multiqc/broad_peak/multiqc_data")
+deeptool_file <- paste0(results_folder, "summarization/deeptools/multibamsummary/readCounts.tab")
 # line 417 samplesheet$coln = "_REP1.mLb.clN.sorted.bam"
 
 
@@ -65,12 +65,15 @@ Coverage for the OT sites is re-checked with paramaters of read quality (>30), l
 
 
 
+
 ```{r setupfiles, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
 
 
 samplesheet <- read.table(samplesheet, sep = ",", header = TRUE)
 print(samplesheet)
-guide_sequence <- subset(samplesheet, Target_Name == guidename)
+#guide_sequence <- subset(samplesheet, Target_Name == guidename)
+
+guide_sequence <- samplesheet[grep(guidename, samplesheet$Target_Name),]
 guide_sequence = guide_sequence$guide1[1]
 
 library(pander)
@@ -79,12 +82,12 @@ library(ggcorrplot)
 
 library(reshape2)
 library(ggplot2)
-library(tidyr)
+#library(tidyr)
 library(dplyr)
 library(ggVennDiagram)
 library(ggvenn)
 library(kableExtra)
-library(plotly)
+#library(plotly)
 library(stringr)
 library(DT)
 library(Biostrings)
@@ -162,7 +165,7 @@ colnames(cov) <- column_names
 
 dat <- cov[4:dim(cov)[2]]
 temp <- data.frame(colnames(dat))
-df_split <- separate(temp, col = colnames.dat., into = c("part1", "part2"), sep = "_")
+df_split <- tidyr::separate(temp, col = colnames.dat., into = c("part1", "part2"), sep = "_")
 colnames(dat) <- df_split$part2
 
 corr <-  cor(dat, use = "complete.obs", method = "pearson")
@@ -330,66 +333,21 @@ datFig <- subset(datF, ONTarget != 1)
 **Putative off-target site may have up to 6 max mismatches to the on-target sequence, 0 mismatch to PAM, no gap on DNA and RNA. It is not present in negative control (DNA only control and/or Cas9 only control).  **
 <br>
 <br>
-<center> **Off-target overlap in replicates at each RNP concentration ** </center>
+<center> **Off-target overlap all replicates ** </center>
 <br>
-```{r Figure,echo=FALSE, warning=FALSE,cache=FALSE, fig.align='center', fig.width=4, fig.height=4}
-
-
-for(i in unique(datFig$dose)){
-  dattemp <- subset(datFig, dose == i)
-  dattemp <- subset(dattemp, select = c(OT_ID, samplename))
-sets <- dattemp %>%
-  unique() %>%
-  mutate(value = TRUE) %>%
-  pivot_wider(id_cols = OT_ID,
-              names_from = samplename,
-              values_from = value,
-              values_fill = FALSE)
-#print(ggvenn(sets, names(sets)[2:4], fill_color = c("#0073C2FF", "#EFC000FF", "#868686FF"),stroke_size = 0.5, set_name_size = 4, show_percentage = TRUE, text_size = 4)  + ggtitle(i))
-
- print(ggvenn(sets, names(sets)[2:dim(sets)[2]], fill_color = viridis(4),stroke_size = 0.5, set_name_size = 4, show_percentage = FALSE, text_size = 4)  + ggtitle(i) + theme(plot.title = element_text(hjust = 0.5)) )
- 
-}
-
-
-
-
-```
-
-
-```{r OffOn, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
-datOT <- subset(datF, select = c(dose, OT_ID), ONTarget != 1 )
-datOT <- unique(datOT)
-siteN <- data.frame(datOT   %>% group_by(dose) %>% tally())
-#siteN$dose <- (as.numeric(gsub("nM", "", siteN$dose)))
-#siteN$dose <- as.numeric(siteN$dose %>% stringr::str_remove(pattern = "nm"))
-siteN$condition <-siteN$dose
-siteN$dose <- (siteN$dose)
-
-siteN$condition <- factor(siteN$condition, levels=c("64nM", "256nM", "1024nM"))
-
-  
-```
-<br>
-<br>
-<center> **The number of putative off-target sites (n) per RNP concentration (condition)**</center>
-<br>
-
-```{r OffOnplot, echo=FALSE, warning=FALSE,cache=FALSE, fig.width=4, fig.height=4, fig.align='center'}
-ggplot(siteN, aes(x = dose, y = n)) +geom_point()+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))+labs(x = "RNP concentration (nM)", y = "No. of unique off-target sites")+ scale_color_viridis(3) + theme_bw()+ theme(panel.grid = element_blank())
-```
 
 
 ```{r overlap, include=FALSE,echo=FALSE, warning=FALSE,cache=FALSE}
 datOT <- subset(datF, ONTarget != 1)
-datOT <- subset(datOT, select = c(dose, OT_ID))
+datOT <- subset(datOT, select = c(samplename, OT_ID))
 datOT <- unique(datOT)
 No_of_sites <- length(unique(datOT$OT_ID))
-datOT$condition <- paste0("D", datOT$dose)
+#datOT$condition <- paste0("D", datOT$samplename)
+datOT$condition <- datOT$samplename
 sets <- datOT %>%
   unique() %>%
   mutate(value = TRUE) %>%
-  pivot_wider(id_cols = OT_ID,
+  tidyr::pivot_wider(id_cols = OT_ID,
               names_from = condition,
               values_from = value,
               values_fill = FALSE)
@@ -411,8 +369,8 @@ for(i in unique(datOT$condition)){
 <br>
 
 ```{r overlapPlot,echo=FALSE, warning=FALSE,cache=FALSE, fig.align='center', fig.width=4, fig.height=4}
+ggVennDiagram(dat_plot,label = "count") + scale_fill_distiller(palette = "YlGnBu")
 
-ggVennDiagram(dat_plot,label = "count",label_alpha = 0) + scale_fill_distiller(palette = "Oranges", direction = 1)
 
 ```
 <br>
@@ -463,10 +421,10 @@ for(eachcnt in colnames(datcnt)[4:dim(datcnt)[2]]){
 }
  datcnt01$cont_cnt <- rowSums(datcnt01[4:dim(datcnt01)[2]])
 
-datOT <- subset(datF, select = c(dose, OT_ID, Off.On_ratio), ONTarget != 1)
+datOT <- subset(datF, select = c(samplename, OT_ID, Off.On_ratio), ONTarget != 1)
 temp <- data.frame(datOT %>% group_by(OT_ID) %>% tally())
 
-temp2 <- datOT %>% group_by(OT_ID) %>% arrange(desc(dose))%>% summarize(RNPconcs = paste(dose, collapse = ','))
+temp2 <- datOT %>% group_by(OT_ID) %>% arrange(desc(samplename))%>% summarize(treatmentSamples = paste(samplename, collapse = ','))
 
 #datOT <- merge(datOT, temp, by = "OT_ID")
 temp1 <- datOT %>% group_by(OT_ID) %>% summarise(RRD.Max = max(Off.On_ratio))
@@ -476,7 +434,7 @@ dat <- merge(dat, temp2, by = "OT_ID")
 
 
 df_separated <- dat %>%
-  separate(OT_ID, into = c("ID", "chr", "start", "end", "Strand"), sep = "_", remove = FALSE)
+  tidyr::separate(OT_ID, into = c("ID", "chr", "start", "end", "Strand"), sep = "_", remove = FALSE)
 
 
 
@@ -505,13 +463,13 @@ dat <- dat %>% arrange(desc(rd_n)) %>%
    mutate(rank = rank(-rd_n))
 dat$rank <- round(dat$rank)
 dat <- dat %>% arrange((rank))
-dat <- subset(dat, select = c(OT_ID, rank, rd_n,RRD.Max, No.OTsites, RNPconcs,  TotalSamples, No.OTsitesInControls ))
+dat <- subset(dat, select = c(OT_ID, rank, rd_n,RRD.Max, No.OTsites, treatmentSamples,  TotalSamples, No.OTsitesInControls ))
 
 
 colnames(dat) <- c("OT_ID", "Rank", "Score", "Max Relative Depth", "Sample Occurrence", "OT observed at RNP concentrations", "Total Samples", "Control Occurrence")
 dat$Score <- round(dat$Score, 3)
 
-temp <- dat %>% separate(OT_ID, c("build", "chrom", "start", "end", "strand"), "_")
+temp <- dat %>% tidyr::separate(OT_ID, c("build", "chrom", "start", "end", "strand"), "_")
 
 dat$OT_ID <- paste0("hg38_", temp$chrom, ":", temp$start, "-", temp$end)
 dat$Strand <- temp$strand

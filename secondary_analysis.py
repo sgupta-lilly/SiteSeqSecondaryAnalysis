@@ -46,20 +46,28 @@ df_metafile = pd.read_csv(sys.argv[1], sep = ",")
 #bam_path = "/lrlhps/genomics/prod/lgm/dna_editing/BN24-11550_APOC3_Top8_SiteSeq/user_data/sorted_bam_bai/"
 bam_path = sys.argv[2]
 results_offtarget = sys.argv[3]
+#outputfolder for the secondary analysis
+results_secondary_analysis = sys.argv[4]
+#results_secondary_analysis = results_offtarget+"result_secondary_pipeline/"
 
-results_secondary_analysis = results_offtarget+"result_secondary_pipeline/"
+#sample_list = (df_metafile['sample'].tolist()) 
+# we subset here as the control samples dont have an output file
+subset_df = df_metafile[df_metafile['treatmenttype'] != 'control']
 
-#sample_list = (df_metafile['sample'].tolist())
-sample_list = (df_metafile.iloc[:, 0].tolist())
+sample_list = (subset_df.iloc[:, 0].tolist())
+
 for eachsample in sample_list:
+ #   eachsample = eachsample.split("_")[0]
     print(eachsample)
 # Define the input file from macs and cameron_OT_Sum.csv
 #input_file = sys.argv[1]
-    input_file = results_offtarget+eachsample+"_cameron_macs2_combined_OT_sum.tsv"
+    input_file = results_offtarget+eachsample+"_cameron_macs2_comb_OT_sum.tsv"
     copy_file_to_current(input_file)
 
 # Load the data into a DataFrame and select only the necessary columns
     df = pd.read_csv(input_file, sep='\t', usecols=['Chr', 'OT_Start', 'OT_End'])
+# make sure that the start is not less than 0
+    df.loc[df['OT_Start'] < 0, 'OT_Start'] = 1
 
 # Remove duplicate rows
     df = df.drop_duplicates()
@@ -114,8 +122,8 @@ for eachsample in sample_list:
     f" -out {count_npz} --outRawCounts {count_tab} "
     )
     # Execute the multiBamSummary command
-    print("Running multiBamSummary with deepTools...")
-    os.system(multiBamSummary_cmd)
+    #print("Running multiBamSummary with deepTools...")
+    #os.system(multiBamSummary_cmd)
 
 
 # Wait if the coverage file is not ready
@@ -143,7 +151,10 @@ for eachsample in sample_list:
 
 
 # Run multiBamSummary on each chunk
-updated_list = [bam_path+element + "_REP1.mLb.clN.sorted.bam" for element in sample_list]
+# We want all the control samples so use the df.metadata
+sample_list_entire_cohort = (df_metafile.iloc[:, 0].tolist())
+
+updated_list = [bam_path+element + "_REP1.mLb.clN.sorted.bam" for element in sample_list_entire_cohort]
 space_separated_bams = ' '.join(updated_list)
 
 #####PART 2
