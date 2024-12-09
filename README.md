@@ -1,4 +1,4 @@
-# ODNSecondaryAnalysis
+# SiteSeqSecondaryAnalysis
 
 ## This repo is to be run after SiteSeq nf-lly-siteseq workflow
 
@@ -7,14 +7,15 @@
 1. create result_secondary_pipeline
 2. pathtosamplesheet = path to samplesheet
 3. pathtobam = path to bam files. These should be in user_data/sorted_bam_bai/<br />
+4. pathto2secondary analysis
 3a. check name of bam files _REP1.mLb.clN.sorted.bam; if different change line 83 and 122<br />
 
 ### command <br />
-**/lrlhps/users/c195933/mambaforge/bin/python3 secondary_analysis.py pathtosamplesheet pathtobam pathresults_offtarget**
+**/lrlhps/users/c195933/mambaforge/bin/python3 secondary_analysis.py pathtosamplesheet pathtobam pathto2secondary analysis **
 
 <br />
 
-4. path to results_offtarget where the named *OT_sum.tsv per sample. <br />
+4. path to  pathto2secondary analysis where the named *OT_sum.tsv per sample. <br />
 5. The expected name of files = "sample" column from samplesheet (used to run nf-lly-siteseq) + "_cameron_macs2_combined_OT_sum.tsv". If the suffix is different then 
 change line 35
 
@@ -23,7 +24,7 @@ change line 35
 * Specific example
 
 <br />
-** python3 secondary_analysis.py BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv ../user_data/sorted_bam_bai/ ../results_offtarget/
+** python3 secondary_analysis.py BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv ../user_data/sorted_bam_bai/ ../results_offtarget/ ../pathto2secondaryanalysis/
 <br />
 <br />
 <br />
