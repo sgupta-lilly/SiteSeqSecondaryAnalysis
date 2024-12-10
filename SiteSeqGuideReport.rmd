@@ -21,6 +21,7 @@ knitr::opts_chunk$set(echo = FALSE)
 
 ```{r read_arg, include=FALSE}
 ##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '17rev.html')"
+##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '41rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '41rev.html')"
 #17rev
 #29rev
 #41rev
@@ -57,13 +58,13 @@ deeptool_file <- paste0(results_folder, "summarization/deeptools/multibamsummary
 ```
 
 ### Purpose
-**SITE-seq is an in-vitro detection technique for nuclease-induced double stranded breaks (DSBs) on protease-treated genomic DNA (Cameron et al., 2017). This is an off-target nomination assay for APOC3 **
+**ODN-seq is an in-vitro detection technique for nuclease-induced double stranded breaks (DSBs) on protease-treated genomic DNA (Cameron et al., 2017). This is an off-target nomination assay for APOC3 **
 <br>
 <br>
-**Bioinformatic Analyses for SITE-seq pipeline (beta version)**
+**Bioinformatic Analyses for ODN-seq pipeline (beta version)**
 **report for `r guidename`**
 <br>
-Zipped Fastqs were trimmed for Illumina adapters and base quality assessed with FastQC using Trim Galore (v0.6.7). Sequencing reads were aligned to human reference genome (GRCh38.p14?) using bowtie2 (v? ) and merged using picard mergebam (v2.27.4). Bam files underwent preseq (v3.1.2) and picard collect multiplemetrics (v2.27.4) to quality check alignment. Genome coverage was assessed with bedtools genomecov (v2.30.0), bedGraphToBigWig (v377), and mosdepth coverage (v0.3.6). 
+Zipped Fastqs were trimmed for Illumina adapters and base quality assessed with FastQC using Trim Galore (v0.6.7). Sequencing reads were aligned to human reference genome (GRCh38.p14) using bowtie2 (v2.4.4) and merged using picard mergebam (v2.27.4). Bam files underwent preseq (v3.1.2) and picard collect multiplemetrics (v2.27.4) to quality check alignment. Genome coverage was assessed with bedtools genomecov (v2.30.0), bedGraphToBigWig (v377), and mosdepth coverage (v0.3.6). 
 <br>
 Coverage peaks are called by MACS2 (v2.2.7.1)and custom in-house script is a modification of the Cameron et. al. 2017 (by Yuanyuan Gao).The modified script identifies Double strand breaks and off-target detection. In brief, peak calling is performed by detecting genomic regions with mapping profile showing increasing read depth and then decreasing coverage after reaching a peak. Within every called peak, double strand break (DSB) is identified by finding a position with >=5 reads starting or ending at this position. This type of read is defined as cliff read. At the same time, total reads overlap at the position counted. If the ratio of cliff read count vs total count >= 0.1, a DSB is called. Off targets (OT) are called by pulling out reference sequences 25bp before and after a DSB followed by pairwise alignment with the On Target. OT candidates are listed, if the mismatch on guide <=6 with a putative PAM (with <=2 mismatch) at 3 prime end of the candidate OT. 
 <br>
@@ -223,8 +224,11 @@ all_out_guide$ONTarget <- 0
 all_out_guide$ONTarget[which(all_out_guide$OT_Mismatch == 0 & all_out_guide$PAM_Mismatch == 0 & all_out_guide$RNA_bulge == 0 & all_out_guide$DNA_bulge == 0)] <- 1
 all_out_guide$Off.On_ratio <- 0.00
 guide_dat <- c()
+ont <- data.frame(table(all_out_guide$samplename, all_out_guide$ONTarget))
+ont <- subset(ont, Var2 == 1 & Freq == 0)
+samples_left <- unique(all_out_guide$samplename)[unique(all_out_guide$samplename) != ont$Var1]
 
-for(nm in unique(all_out_guide$samplename)){
+for(nm in samples_left){
   temp <- subset(all_out_guide, samplename == nm)
   oncov <- temp$Cov[which(temp$ONTarget == 1)]
   temp$Off.On_ratio = temp$Cov/oncov
@@ -284,7 +288,7 @@ colnames(results)[9] <- "Total sites nominated"
 write.table(results, paste0(guidename, ".OnTargetRank"), sep = "\t", quote = F, row.names = F)
 
 ```
-
+Sample `r ont$Var1` had no on-target signal
 
 
 ### On-target Cleavage and Rank
@@ -340,7 +344,7 @@ datFig <- subset(datF, ONTarget != 1)
 **Putative off-target site may have up to 6 max mismatches to the on-target sequence, 0 mismatch to PAM, no gap on DNA and RNA. It is not present in negative control (DNA only control and/or Cas9 only control).  **
 <br>
 <br>
-<center> **Off-target overlap all replicates ** </center>
+<center> **Off-target overlap across replicates ** </center>
 <br>
 
 
@@ -372,8 +376,7 @@ for(i in unique(datOT$condition)){
 
 <br>
 <br>
-<center> **Total number (`r No_of_sites`) of off-target sites across all conditions.**  </center>
-<br>
+
 
 ```{r overlapPlot,echo=FALSE, warning=FALSE,cache=FALSE, fig.align='center', fig.width=4, fig.height=4}
 ggVennDiagram(dat_plot,label = "count") + scale_fill_distiller(palette = "YlGnBu")
