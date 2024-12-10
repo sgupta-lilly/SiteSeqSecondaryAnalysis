@@ -20,8 +20,8 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r read_arg, include=FALSE}
-##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '17rev.html')"
-##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '41rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '41rev.html')"
+##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '29rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '29rev.html')"
+
 #17rev
 #29rev
 #41rev
@@ -226,7 +226,13 @@ all_out_guide$Off.On_ratio <- 0.00
 guide_dat <- c()
 ont <- data.frame(table(all_out_guide$samplename, all_out_guide$ONTarget))
 ont <- subset(ont, Var2 == 1 & Freq == 0)
+if(dim(ont)[1] > 0){
 samples_left <- unique(all_out_guide$samplename)[unique(all_out_guide$samplename) != ont$Var1]
+}
+if(dim(ont)[1] == 0){
+samples_left <- unique(all_out_guide$samplename)
+ont$Var1 == "NULL"
+}
 
 for(nm in samples_left){
   temp <- subset(all_out_guide, samplename == nm)
