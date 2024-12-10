@@ -39,7 +39,7 @@ After the secondary_analysis.py
 Rscript -e "library(rmarkdown);rmarkdown::render('SiteSeqGuideReport.rmd',  params = list(guidename = '17rev', results_folder='/user_data/', samplesheet='BN24-11550_SITESeq_APOC3Top8_nf_08-22-24.csv', result_secondary_pipeline='/result_secondary_pipeline/'), output_file = '17rev.html')"
 <br />
 
-Finally annotated with gencode.v46.annotation.gtf from https://www.gencodegenes.org/human/release_21.html and cancer_gene_census.csv
+Finally annotated with gencode.v46.annotation.gtf from (https://www.gencodegenes.org/human/release_46.html) and cancer_gene_census.csv
 <br />
 python3 annotation.py 17rev.OT_rank_out cancer_gene_census.csv
 
