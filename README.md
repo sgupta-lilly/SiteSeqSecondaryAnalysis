@@ -1,6 +1,6 @@
-# SiteSeqSecondaryAnalysis
+# ODNSeq Analysis
 
-## This repo is to be run after SiteSeq nf-lly-siteseq workflow
+## This repo is to be run after ODNSeq nf-lly-siteseq workflow
 
 ## Usage
 ### secondary analysis v1 
