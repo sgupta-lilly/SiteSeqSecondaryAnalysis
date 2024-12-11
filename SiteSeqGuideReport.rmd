@@ -20,7 +20,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r read_arg, include=FALSE}
-##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '29rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '29rev.html')"
+##Rscript -e "rmarkdown::render('/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/SiteSeqSecondaryAnalysis/SiteSeqGuideReport.rmd',  params = list(guidename = '6rev', results_folder='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/', samplesheet='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/BN24-9851_nf.csv', result_secondary_pipeline='/lrlhps/genomics/prod/lgm/dna_editing/BN24-9851_APOC3_Top8ODN/nf_results/stats/result_secondary_pipeline/'), output_file = '6rev.html')"
 
 #17rev
 #29rev
@@ -268,6 +268,7 @@ datF <- merge(datF, site_n, by = "samplename")
 
 datFT <- subset(datF, ONTarget == 1)
 datFT <- subset(datFT, select = c(dose, samplename, Chr,OT_Start,OT_End,Strand, Off.On_ratio, rank, n))
+datFT <- unique(datFT)
 colnames(datFT)[1] <- "Dose"
 colnames(datFT)[8] <- "rank"
 colnames(datFT)[9] <- "Total sites nominated"
@@ -438,6 +439,7 @@ for(eachcnt in colnames(datcnt)[4:dim(datcnt)[2]]){
  datcnt01$cont_cnt <- rowSums(datcnt01[4:dim(datcnt01)[2]])
 
 datOT <- subset(datF, select = c(samplename, OT_ID, Off.On_ratio), ONTarget != 1)
+datOT <- unique(datOT)
 temp <- data.frame(datOT %>% group_by(OT_ID) %>% tally())
 
 temp2 <- datOT %>% group_by(OT_ID) %>% arrange(desc(samplename))%>% summarize(treatmentSamples = paste(samplename, collapse = ','))
